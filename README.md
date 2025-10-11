@@ -44,9 +44,9 @@ As a simple demonstration of the accuracy of DOCTORS, we show below teh results 
 DOCTORS are developed by Edward Norris and Xin Liu, please contact Xin Liu (liux.xin@gmail.com) for any questions.
 
 ## License
-DOCTORS is distributed under teh terms of teh MIT license. All new contributions must be made under this license. See LICENSE in this directory for the terms of the license. 
+DOCTORS is distributed under the terms of the MIT license. All new contributions must be made under this license. See LICENSE in this directory for the terms of the license. 
 
-Please cite our work by referenceing this github page and citing our paper:
+Please cite our work by referencing this github page and citing our paper:
 - Edward T. Norris and Xin Liu, " Phtoton flunce and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
 
 
