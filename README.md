@@ -2,7 +2,7 @@
 Computed tomogrpahy (CT) and radiogrpahy using ionizing radiations have been applied extensively in nondestructive testing and medical diagnosis. A complete description of the particle fluence distribution and energy transfer is essential for estimating radiation doses and scatter contamination in these imaging systems. Discrete Ordinates Computed TOmography and Radiography Simulator (i.e. DOCTORS) is a code package for producing neutral particle fluence distribution, including both primary and scattered, in a 3D voxelized object by solving the linear Boltzmann transport equation (LBTE) with GPU parallel computing techniques. 
 
 ## Overview
-DOCTORS is build upon C++/CUDA on Linux platforms. To improve its usability, a graphicial user interface (GUI) is developed to help users generating an input file. Once the input file was generated, users can use that input file as a template future DOCTORS runs. DOCTORS consists of a set of modules, each performing a well-defined processing task. The major modules of the current vesion are listed in the following:
+DOCTORS is build upon C++/CUDA on both Linux/Windows platforms. To improve its usability, a graphicial user interface (GUI) is developed to help users generating an input file. Once the input file was generated, users can use the input file as a template for future DOCTORS runs. DOCTORS consists of a set of modules, each performing a well-defined processing task. The major modules of the current vesion are listed in the following:
 1. Geometry - load object volume and specify mesh grid, physical length and iso center.
 2. Cross Section - load multi-group cross section data and specify material type.
 3. Quandrature - select the angular discretizaton order (i.e. Sn order)
@@ -25,5 +25,22 @@ In order to run a simulation using DOCTORS, several data files are required. Ths
 3. Source energy spectrum. This file contains normalzied enegy spectrum of the source particle.
 
 In addition to these required files, the user needs to provide the material type of the object, which describes the chemical element composition of each voxel. Two prebuild material types are available, namely, water and human abdomen body part. Users can edit these examples for their applications.
+
+## How to Run DOCTORS
+To run DOCTORS, simply go to the directory where DOCTORS executalbe and the Python GUI is located, and type the following command:
+~$python3 doctors_main.py
+
+It is also possilbe to run DOCTORS without using the GUI. Simply go to the directory where both the DOCTORS executable and the input file are located, and type the following command: 
+~$./DOCTORS your_input_file_name.txt
+
+## How to Uninstall DOCTORS
+To uninstall DOCTORS, simply delete the DOCTORS executalbe or the whole folder conataining DOCTORS and the Python GUI files.
+
+## Example Results
+As 
+
+## Authors and Contact
+DOCTORS are developed by Edward Norris and Xin Liu, please contact Xin Liu (liux.xin@gmail.com) for any questions.
+
 
 
