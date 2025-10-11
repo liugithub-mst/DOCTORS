@@ -16,6 +16,13 @@ DOCTORS is build upon C++/CUDA on Linux platforms. To improve its usability, a g
 As we continue to improve the functionality of DOCTORS, there are items which will be implemented in the future versions. The GPU parallel computing was tested using CUDA 12.4 and Nvidia Quadro 3000 and newer. Ig may not work on other platforms.
 
 ## Installation
+Users can build DOCTORS executable file using CMake and the given CMakeLists.txt. Users can also download the executable file directly and place it in any folder under the user's home directory.
 
+## Required Files from User
+In order to run a simulation using DOCTORS, several data files are required. Thses data files can be placed in any folder. However, it is suggested to put all the data files in the same directory where DOCTORS is located for good file organization. The required fiels are:
+1. CT volume data file. This is a 16-bit unsigned binary file, which contains CT number in every voxel of a 3D object. This data file can be easily generated from a series of DICOM images using ImageJ. It can also be generated numerically by a data processing tool, such as Matlab or Python.
+2. Multi-group cross section data file. This data file is usually generated from ENDF/B data library using NJOY. NJOY2016 is an open source software, and is recommedn to teh user for the cross section data generation.
+3. Source energy spectrum. This file contains normalzied enegy spectrum of the source particle.
+In addition to these required files, the user needs to provide the material type of the object, which describes the chemical element composition of each voxel. Two prebuild material types are available, namely, water and human abdomen body part. Users can edit these examples for their applications.
 
 
