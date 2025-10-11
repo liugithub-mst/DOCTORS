@@ -1,5 +1,5 @@
 # DOCTORS
-Computed tomogrpahy (CT) and radiogrpahy using ionizing radiations have been applied extensively in nondestructive testing and medical diagnosis. A complete description of the particle fluence distribution and energy transfer is essential for estimating radiation doses and scatter contamination in these imaging systems. Discrete Ordinates Computed TOmography and Radiography Simulator (i.e. DOCTORS) is a code package for producing neutral particle fluence distribution, including both primary and scattered, in a 3D voxelized object by solving the linear Boltzmann transport equation (LBTE) with GPU parallel computing techniques. 
+Computed tomogrpahy (CT) and radiogrpahy using ionizing radiations have been applied extensively in nondestructive testing and medical diagnosis. A complete description of the particle fluence distribution and energy transfer is essential for estimating radiation doses and scatter contamination in these imaging systems. Discrete Ordinates Computed TOmography and Radiography Simulator (i.e. DOCTORS) is a code package for producing neutral particle fluence distribution, including both primary and scattered, in a 3D voxelized object by solving the linear Boltzmann transport equation (LBTE) with GPU parallel computing techniques. Its accuracy is close to a Monte Carlo simulation, but with much less computation time on a regular desktop computer.
 
 ## Overview
 DOCTORS is build upon C++/CUDA on both Linux/Windows platforms. To improve its usability, a graphicial user interface (GUI) is developed to help users generating an input file. Once the input file was generated, users can use the input file as a template for future DOCTORS runs. DOCTORS consists of a set of modules, each performing a well-defined processing task. The major modules of the current vesion are listed in the following:
@@ -37,7 +37,8 @@ It is also possilbe to run DOCTORS without using the GUI. Simply go to the direc
 To uninstall DOCTORS, simply delete the DOCTORS executalbe or the whole folder conataining DOCTORS and the Python GUI files.
 
 ## Example Results
-As 
+As a simple demonstration of the accuracy of DOCTORS, we show below teh results of effective dose using MCNP6 and DOCTORS of an abdoman body part. The relative differnece between DOCTORS and MCNP6 is less than 5%, and DOCTORS is over 10 times faster than MCNP6. Detailed results can be found in this paper,
+- Edward T. Norris and Xin Liu, " Phtoton flunce and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
 
 ## Authors and Contact
 DOCTORS are developed by Edward Norris and Xin Liu, please contact Xin Liu (liux.xin@gmail.com) for any questions.
