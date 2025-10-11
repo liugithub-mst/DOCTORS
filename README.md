@@ -44,6 +44,8 @@ As a simple demonstration of the accuracy of DOCTORS, we show below the effectiv
 Detailed results can be found in this paper,
 - Edward T. Norris and Xin Liu, " Phtoton flunce and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
 
+![Effective Dose Distribution (pSv per source particle)](figures/DOCTORS_dose_comp.png)
+
 ## Authors and Contact
 DOCTORS are developed by Edward Norris and Xin Liu, please contact Xin Liu (liux.xin@gmail.com) for any questions.
 
