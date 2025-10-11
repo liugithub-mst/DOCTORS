@@ -39,7 +39,7 @@ It is also possible to run DOCTORS without using the GUI. Simply go to the direc
 To uninstall DOCTORS, simply delete the DOCTORS executable or the entire folder containing DOCTORS and the Python GUI files.
 
 ## Example Results
-As a simple demonstration of the accuracy of DOCTORS, we show below the effective dose using MCNP6 and DOCTORS of an abdoman body part. The relative differnece between DOCTORS and MCNP6 is less than 5%, and DOCTORS is over 10 times faster than MCNP6. 
+As a simple demonstration of the accuracy of DOCTORS, we show below the effective dose (pSv per source particle) using MCNP6 and DOCTORS of an abdoman body part. The relative differnece between DOCTORS and MCNP6 is less than 5%, and DOCTORS is over 10 times faster than MCNP6. 
 
 Detailed results can be found in this paper,
 - Edward T. Norris and Xin Liu, " Phtoton flunce and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
