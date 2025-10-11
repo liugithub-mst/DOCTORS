@@ -1,25 +1,26 @@
 # DOCTORS
-Computed tomogrpahy (CT) and radiogrpahy using ionizing radiations have been applied extensively in nondestructive testing and medical diagnosis. A complete description of the particle fluence distribution and energy transfer is essential for estimating radiation doses and scatter contamination in these imaging systems. Discrete Ordinates Computed TOmography and Radiography Simulator (i.e. DOCTORS) is a code package for producing neutral particle fluence distribution, including both primary and scattered, in a 3D voxelized object by solving the linear Boltzmann transport equation (LBTE) with GPU parallel computing techniques. Its accuracy is close to a Monte Carlo simulation, but with much less computation time on a regular desktop computer.
+Computed tomography (CT) and radiography using ionizing radiation have been applied extensively in nondestructive testing and medical diagnosis. A complete description of the particle fluence distribution and energy transfer is essential for estimating radiation doses and scatter contamination in these imaging systems. Discrete Ordinates Computed TOmography and Radiography Simulator (i.e., DOCTORS) is a code package for producing neutral particle fluence distributions—including both primary and scattered components—in a 3D voxelized object by solving the linear Boltzmann transport equation (LBTE) with GPU parallel computing techniques. Its accuracy is close to that of a Monte Carlo simulation, but with much less computation time on a regular desktop computer.
 
 ## Overview
-DOCTORS is build upon C++/CUDA on both Linux/Windows platforms. To improve its usability, a graphicial user interface (GUI) is developed to help users generating an input file. Once the input file was generated, users can use the input file as a template for future DOCTORS runs. DOCTORS consists of a set of modules, each performing a well-defined processing task. The major modules of the current vesion are listed in the following:
+DOCTORS is built upon C++/CUDA on both Linux and Windows platforms. To improve its usability, a graphical user interface (GUI) is developed to help users generate an input file. Once the input file is generated, users can use it as a template for future DOCTORS runs. DOCTORS consists of a set of modules, each performing a well-defined processing task. The major modules of the current version are listed below:
 - Geometry - load object volume and specify mesh grid, physical length and iso center.
 - Cross Section - load multi-group cross section data and specify material type.
 - Quandrature - select the angular discretizaton order (i.e. Sn order)
 - Source - select source type and specify source energy spectrum, position, and profile.
 - Detector - specify source to object distance (SOD) and object to detector distance (ODD).
-- Solver - select solver type and check GPU if using NVidia GPU parallel computing.
+- Solver - select solver type and check GPU if using NVIDIA GPU parallel computing.
 - Input File - generate and edit the input file which can be read by the solver.
 - Launch Solver - simply execute the calculation
 
 ## Cautions and Warnings
-As we continue to improve the functionality of DOCTORS, there are items which will be implemented in the future versions. The GPU parallel computing was tested using CUDA 12.4 and Nvidia Quadro 3000 and newer. Ig may not work on other platforms.
+As we continue to improve the functionality of DOCTORS, there are items that will be implemented in future versions. The GPU parallel computing capability was tested using CUDA 12.4 and NVIDIA Quadro 3000 and newer GPUs. It may not work on other platforms.
 
 ## Installation
-Users can build DOCTORS executable file using CMake and the given CMakeLists. Users can also download the executable file directly and place it in any folder under the user's home directory.
+Users can build the DOCTORS executable file using CMake and the provided CMakeLists file. Users can also download the executable file directly and place it in any folder under their home directory.
 
 ## Required Files from User
-In order to run a simulation using DOCTORS, several data files are required. Thses data files can be placed in any folder. However, it is suggested to put all the data files in the same directory where DOCTORS is located for good file organization. The required fiels are:
+In order to run a simulation using DOCTORS, several data files are required. These data files can be placed in any folder; however, it is recommended to put all the data files in the same directory where DOCTORS is located for good file organization.
+The required fiels are:
 1. CT volume data file. This is a 16-bit unsigned binary file, which contains CT number in every voxel of a 3D object. This data file can be easily generated from a series of DICOM images using ImageJ. It can also be generated numerically by a data processing tool, such as Matlab or Python.
 2. Multi-group cross section data file. This data file is usually generated from ENDF/B data library using NJOY. NJOY2016 is an open source software, and is recommedn to teh user for the cross section data generation.
 3. Source energy spectrum. This file contains normalzied enegy spectrum of the source particle.
