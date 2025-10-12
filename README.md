@@ -42,7 +42,7 @@ To uninstall DOCTORS, simply delete the DOCTORS executable or the entire folder 
 As a simple demonstration of the accuracy of DOCTORS, we show below the effective dose (pSv per source particle) using MCNP6 and DOCTORS of an abdoman body part. The relative differnece between DOCTORS and MCNP6 is less than 5%, and DOCTORS is over 10 times faster than MCNP6. 
 
 Detailed results can be found in this paper,
-- Edward T. Norris and Xin Liu, " Phtoton flunce and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
+- Edward T. Norris and Xin Liu, " Photon fluence and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
 
 ![Effective Dose Distribution (pSv per source particle)](figures/DOCTORS_dose_comp.png)
 
@@ -53,7 +53,7 @@ DOCTORS are developed by Edward Norris and Xin Liu, please contact Xin Liu (liux
 DOCTORS is distributed under the terms of the MIT license. All new contributions must be made under this license. See LICENSE in this directory for the terms of the license. 
 
 Please cite our work by referencing this github page and citing our paper:
-- Edward T. Norris and Xin Liu, " Phtoton flunce and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
+- Edward T. Norris and Xin Liu, " Photon fluence and dose estimation in computed tomography using a discrete ordinates Boltzmann solver", Scientific Reports, 10.1 (2020): 11609.
 
 
 
