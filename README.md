@@ -35,7 +35,7 @@ To run DOCTORS, go to the directory where the DOCTORS executable and the Python 
 It is also possible to run DOCTORS without using the GUI. Simply go to the directory where both the DOCTORS executable and the input file are located, and type:
 ~$./DOCTORS your_input_file_name.txt
 
-## How to read output of DOCTORS
+## Output of DOCTORS
 The output of DOCTORS consists of binary files containing the three-dimensional distributions of collided and uncollided particle fluxes within a voxelized geometry. The data are stored for each energy group, allowing detailed post-processing for dose estimation, image reconstruction, and scatter correction. A python script can be found in the "utilities" to help user for data processing.
 
 ## How to Uninstall DOCTORS
