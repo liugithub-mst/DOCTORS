@@ -202,6 +202,8 @@ class Window(QMainWindow, Ui_MainWindow):
         
         material_type = self.matTypeComboBox.currentIndex()
         
+        Legendre_order = self.Leg_order_comboBox.currentIndex()
+        
         quadrature = self.quadData1ComboBox.currentText()
         
         geomag = self.magValueLabel.text()
@@ -242,6 +244,7 @@ class Window(QMainWindow, Ui_MainWindow):
         self.inputFileTextEdit.append("geomag= " + geomag)
         self.inputFileTextEdit.append("material_type= " + str(material_type))
         self.inputFileTextEdit.append("quadrature= " + quadrature)
+        self.inputFileTextEdit.append("Legendre_order= " + str(Legendre_order))
         self.inputFileTextEdit.append("GPU_flag= " + str(GPU_flag))
         self.inputFileTextEdit.append("ISO_flag= " + str(solver_type))
         self.inputFileTextEdit.append("start_angle= " + str(start_ang))
@@ -285,7 +288,7 @@ class Window(QMainWindow, Ui_MainWindow):
             msg = QMessageBox(QMessageBox.Warning, "Error!", "Cannot open file!")
             msg.exec_()
         
-        proc = Popen([r'.\DOCTORS', path], stdout=PIPE, stderr=PIPE, \
+        proc = Popen(['./DOCTORS', path], stdout=PIPE, stderr=PIPE, \
                       universal_newlines=True, shell=False)
         
         # Poll proc.stdout to show stdout live
