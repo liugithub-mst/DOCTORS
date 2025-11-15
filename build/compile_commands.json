@@ -1,0 +1,110 @@
+[
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/ctdatamanager.cpp.o -c /home/liux/Work/DOCTORS/src/ctdatamanager.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/ctdatamanager.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/ctdatamanager.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/nvcc -forward-unknown-to-host-compiler -I/home/liux/Work/DOCTORS/include -g -std=c++14 \"--generate-code=arch=compute_52,code=[compute_52,sm_52]\" -w -fexceptions -x cu -rdc=true -c /home/liux/Work/DOCTORS/src/device_utils.cu -o CMakeFiles/DOCTORS.dir/src/device_utils.cu.o",
+  "file": "/home/liux/Work/DOCTORS/src/device_utils.cu",
+  "output": "CMakeFiles/DOCTORS.dir/src/device_utils.cu.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/dtfrparser.cpp.o -c /home/liux/Work/DOCTORS/src/dtfrparser.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/dtfrparser.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/dtfrparser.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/histogram.cpp.o -c /home/liux/Work/DOCTORS/src/histogram.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/histogram.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/histogram.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/legendre.cpp.o -c /home/liux/Work/DOCTORS/src/legendre.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/legendre.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/legendre.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/main.cpp.o -c /home/liux/Work/DOCTORS/src/main.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/main.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/materialutils.cpp.o -c /home/liux/Work/DOCTORS/src/materialutils.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/materialutils.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/materialutils.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/mcnpwriter.cpp.o -c /home/liux/Work/DOCTORS/src/mcnpwriter.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/mcnpwriter.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/mcnpwriter.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/mesh.cpp.o -c /home/liux/Work/DOCTORS/src/mesh.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/mesh.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/mesh.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/nuclidedata.cpp.o -c /home/liux/Work/DOCTORS/src/nuclidedata.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/nuclidedata.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/nuclidedata.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/outwriter.cpp.o -c /home/liux/Work/DOCTORS/src/outwriter.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/outwriter.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/outwriter.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/quadrature.cpp.o -c /home/liux/Work/DOCTORS/src/quadrature.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/quadrature.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/quadrature.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/solver.cpp.o -c /home/liux/Work/DOCTORS/src/solver.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/solver.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/solver.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/nvcc -forward-unknown-to-host-compiler -I/home/liux/Work/DOCTORS/include -g -std=c++14 \"--generate-code=arch=compute_52,code=[compute_52,sm_52]\" -w -fexceptions -x cu -rdc=true -c /home/liux/Work/DOCTORS/src/solver_gpu.cu -o CMakeFiles/DOCTORS.dir/src/solver_gpu.cu.o",
+  "file": "/home/liux/Work/DOCTORS/src/solver_gpu.cu",
+  "output": "CMakeFiles/DOCTORS.dir/src/solver_gpu.cu.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/solver_metadata_extract.cpp.o -c /home/liux/Work/DOCTORS/src/solver_metadata_extract.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/solver_metadata_extract.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/solver_metadata_extract.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/sourceparams.cpp.o -c /home/liux/Work/DOCTORS/src/sourceparams.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/sourceparams.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/sourceparams.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/sweep.cpp.o -c /home/liux/Work/DOCTORS/src/sweep.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/sweep.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/sweep.cpp.o"
+},
+{
+  "directory": "/home/liux/Work/DOCTORS/build",
+  "command": "/usr/bin/g++-12 -I/home/liux/Work/DOCTORS/include -g -std=gnu++14 -w -fexceptions -o CMakeFiles/DOCTORS.dir/src/xsection.cpp.o -c /home/liux/Work/DOCTORS/src/xsection.cpp",
+  "file": "/home/liux/Work/DOCTORS/src/xsection.cpp",
+  "output": "CMakeFiles/DOCTORS.dir/src/xsection.cpp.o"
+}
+]

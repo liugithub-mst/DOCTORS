@@ -1116,8 +1116,6 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
         else
             notTrackedHighestEnergy = false;
 
-
-
         if (highestEnergy >= metadata.num_energies)
         {
             std::cout << "Zero flux everywhere from the raytracer" << std::endl;
@@ -1188,7 +1186,7 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
                 totDiff += diff[i];
             }
 
-            // increment iteratuion count
+            // increment iteration count
             it++;
 
             std::cout<<"Iteration "<<it<<": Relative error = "<<maxDiff<<std::endl;

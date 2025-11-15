@@ -1,0 +1,3 @@
+/home/liux/Work/DOCTORS/CMakeFiles/DOCTORS.dir
+/home/liux/Work/DOCTORS/CMakeFiles/edit_cache.dir
+/home/liux/Work/DOCTORS/CMakeFiles/rebuild_cache.dir
