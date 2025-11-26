@@ -212,7 +212,7 @@ __global__ void compute_inscatter_Iso(float *inscatter, float *cFlux, struct sol
   }
 }
 
-__global__ void compute_totalCrossSection(float *totalCrossSection, struct solver_metadata *metadata, int ie)
+__global__ void compute_totalCrossSection(SOL_T *totalCrossSection, struct solver_metadata *metadata, int ie)
 {
     int ir = blockIdx.x * blockDim.x + threadIdx.x;
     int im;
@@ -220,12 +220,12 @@ __global__ void compute_totalCrossSection(float *totalCrossSection, struct solve
     if(ir < metadata->num_voxels)
     {
       im = metadata->zoneIdMapped[ir];
-      float sigma = metadata->sigma_total[im * metadata->num_energies + ie];
-      float density = metadata->atomDensity[ir];
+      double sigma = metadata->sigma_total[im * metadata->num_energies + ie];
+      double density = metadata->atomDensity[ir];
 
       // Basic sanity checks
-      if (sigma < 0.0f || isnan(sigma)) sigma = 0.0f;
-      if (density < 0.0f || isnan(density)) density = 0.0f;
+      if (sigma < 0.0 || isnan(sigma)) sigma = 0.0;
+      if (density < 0.0 || isnan(density)) density = 0.0;
 
       totalCrossSection[ir] = sigma * density * metadata->voxel_vol;
 
@@ -234,10 +234,11 @@ __global__ void compute_totalCrossSection(float *totalCrossSection, struct solve
          printf("Warning: totalXS[%d] = %f (sigma = %f, density = %f)\n", ir, totalCrossSection[ir], sigma, density);
       }
     }
+    __syncthreads(); 
 }
 
 // Sum the flux across differnt angles, each computed by a different "block" of threads.
-__global__ void sumFluxAcrossAngles(float *nextFlux, float *nextFlux_block, struct solver_metadata *metadata)
+__global__ void sumFluxAcrossAngles(SOL_T *nextFlux, SOL_T *nextFlux_block, struct solver_metadata *metadata)
 {
     int ir = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -246,13 +247,15 @@ __global__ void sumFluxAcrossAngles(float *nextFlux, float *nextFlux_block, stru
       for(int iang=0; iang < metadata->num_angles; iang++)
         nextFlux[ir] += nextFlux_block[iang * metadata->num_voxels + ir];
     }
+    __syncthreads(); 
 }
 
 // Find difference between previous and current iteration LBTE solution
-__global__ void updateDiff(float *norm_diff, float *diff, float *nextFlux, float *cFlux, struct solver_metadata *metadata, int ie)
+/*  Debug 
+__global__ void updateDiff(SOL_T *norm_diff, SOL_T *diff, SOL_T *nextFlux, SOL_T *cFlux, struct solver_metadata *metadata, int ie)
 {
   int ir = blockIdx.x * blockDim.x + threadIdx.x;
-
+  
   if(ir < metadata->num_voxels)
   {
     diff[ir] = fabsf(nextFlux[ir]-cFlux[ie * metadata->num_voxels + ir]);
@@ -262,15 +265,34 @@ __global__ void updateDiff(float *norm_diff, float *diff, float *nextFlux, float
     else
       norm_diff[ir] = 0; // to take care of divide by zero issues
   }
+  __syncthreads();
+}
+*/
+__global__ void updateDiff(SOL_T *norm_diff, SOL_T *diff, SOL_T *nextFlux, SOL_T *cFlux, struct solver_metadata *metadata, int ie)
+{ 
+  int ir = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  if(ir < metadata->num_voxels)
+  {
+    diff[ir] = fabs(nextFlux[ir]-cFlux[ie * metadata->num_voxels + ir]);
+
+    if(fabs(nextFlux[ir]) > TINY_T)
+      norm_diff[ir] = diff[ir]/fabs(nextFlux[ir]);
+    else
+      norm_diff[ir] = 0.0; // to take care of divide by zero issues
+  }
+  __syncthreads();
 }
 
 // copies flux summed across angles from a local buffer (energy-independent) to a global buffer (energy-dependent)
-__global__ void updatecFluxAtEnergy(float *cFlux, float *nextFlux, struct solver_metadata *metadata, int ie)
+__global__ void updatecFluxAtEnergy(SOL_T *cFlux, SOL_T *nextFlux, struct solver_metadata *metadata, int ie)
 {
   int ir = blockIdx.x * blockDim.x + threadIdx.x;
 
   if(ir < metadata->num_voxels)
     cFlux[ie * metadata->num_voxels + ir] = nextFlux[ir];
+
+  __syncthreads();
 }
 
 
@@ -417,7 +439,7 @@ __global__ void LBTE_Iteration_Iso(float *nextFlux_block, float *totalSource, fl
   }
 
 }
-
+/* XL: comment out 
 float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>* uFlux_vector)
 {
   struct solver_metadata *metadata_device;
@@ -630,13 +652,14 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
   return cFlux_host;
 
 }
+*/
 /*********** END: ROUTINES FOR ISOTROPIC LBTE SOLVER *******************/
 
 /*********** BEGIN: ROUTINES FOR ANISOTROPIC LBTE SOLVER ***************/
 
 // Function to convert uncollided flux to flux moments and generate in-moments
-__global__ void update_umomentsKernel(float* uFlux, struct solver_metadata* metadata, float* umoments, float* cmoments, 
-                                      float* inmoments, int numMoments, int highestE, int currentE)
+__global__ void update_umomentsKernel(SOL_T* uFlux, struct solver_metadata* metadata, SOL_T* umoments, SOL_T* cmoments, 
+                                      SOL_T* inmoments, int numMoments, int highestE, int currentE)
 {
     unsigned int xIndx = blockIdx.x;
     unsigned int yIndx = blockIdx.y;
@@ -660,16 +683,16 @@ __global__ void update_umomentsKernel(float* uFlux, struct solver_metadata* meta
     SOL_T deltaZ = z - metadata->sz;
 
     SOL_T srcToCellDist = sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
-    if (srcToCellDist < 1e-8) srcToCellDist = 1e-8;
-
+    //if (srcToCellDist < 1e-8) srcToCellDist = 1e-8;  //XL: Debug
+    
     SOL_T xcos = deltaX / srcToCellDist;     // sin(theta)sin(phi)
     SOL_T ycos = deltaY / srcToCellDist;     // cos(theta) chose Y axis as the polar axis as the X-ray is shooting down along Y axis
     SOL_T zcos = deltaZ / srcToCellDist;     // sin(theta)cos(phi)
     
     // Clamp xcos and other cosines so it could not exceed [-1, 1]
-    xcos = fminf(fmaxf(xcos, -1.0f), 1.0f);
-    ycos = fminf(fmaxf(ycos, -1.0f), 1.0f);
-    zcos = fminf(fmaxf(zcos, -1.0f), 1.0f);
+    //xcos = fmin(fmax(xcos, -1.0f), 1.0f);
+    //ycos = fmin(fmax(ycos, -1.0f), 1.0f);
+    //zcos = fmin(fmax(zcos, -1.0f), 1.0f);
 
     SOL_T phi = atan2(xcos, zcos);
     SOL_T theta = acos(ycos);                // chose Y axis as the polar axis as the X-ray is shooting down along Y axis
@@ -682,37 +705,37 @@ __global__ void update_umomentsKernel(float* uFlux, struct solver_metadata* meta
         //Generate regular in-moments
         for (unsigned int iep = highestE; iep <= currentE; iep++)
         {
-            float total_zeroMoments = umoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il] +
+            SOL_T total_zeroMoments = umoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il] +
                                       cmoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il];
 
             int im = metadata->zoneIdMapped[ir0];
             int im_step = metadata->num_energies * metadata->num_energies * (metadata->pn + 1);
             int src_step = metadata->num_energies * (metadata->pn + 1);
             int sink_step = metadata->pn + 1;
-            float coeff = metadata->sigma_s[im * im_step + iep * src_step + currentE * sink_step + il] * metadata->atomDensity[ir0] * metadata->voxel_vol;
+            SOL_T coeff = metadata->sigma_s[im * im_step + iep * src_step + currentE * sink_step + il] * metadata->atomDensity[ir0] * metadata->voxel_vol;
             inmoments[ir0 * numMoments + il * il] += coeff * total_zeroMoments;  // zero in-moments
         }
 
         for (unsigned int imm = 1; imm <= il; imm++)
         {
             umoments[currentE * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm - 1] =
-                uFlux[currentE * metadata->num_voxels + ir0] * normConst(il, imm) * computAssocLegendre(il, imm, ycos) * sin(imm * phi);
+                uFlux[currentE * metadata->num_voxels + ir0] * normConst(il, imm) * computAssocLegendre(il, imm, ycos) * sin(imm * phi);  
             umoments[currentE * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm] =
-                uFlux[currentE * metadata->num_voxels + ir0] * normConst(il, imm) * computAssocLegendre(il, imm, ycos) * cos(imm * phi);
+                uFlux[currentE * metadata->num_voxels + ir0] * normConst(il, imm) * computAssocLegendre(il, imm, ycos) * cos(imm * phi);  
 
             // Generate cosine and sine in-moments
             for (unsigned int iep = highestE; iep <= currentE; iep++)
             {
-                float total_sinMoments = umoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm - 1] +
+                SOL_T total_sinMoments = umoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm - 1] +
                                          cmoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm - 1];
-                float total_cosMoments = umoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm] +
+                SOL_T total_cosMoments = umoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm] +
                                          cmoments[iep * metadata->num_voxels * numMoments + ir0 * numMoments + il * il + 2 * imm];
 
                 int im = metadata->zoneIdMapped[ir0];
                 int im_step = metadata->num_energies * metadata->num_energies * (metadata->pn + 1);
                 int src_step = metadata->num_energies * (metadata->pn + 1);
                 int sink_step = metadata->pn + 1;
-                float coeff = metadata->sigma_s[im * im_step + iep * src_step + currentE * sink_step + il] * metadata->atomDensity[ir0] * metadata->voxel_vol;
+                SOL_T coeff = metadata->sigma_s[im * im_step + iep * src_step + currentE * sink_step + il] * metadata->atomDensity[ir0] * metadata->voxel_vol;
                 inmoments[ir0 * numMoments + il * il + 2 * imm - 1] += coeff * total_sinMoments;  // sine in-moments
                 inmoments[ir0 * numMoments + il * il + 2 * imm] += coeff * total_cosMoments;      // cosine in-moments
             }
@@ -722,7 +745,7 @@ __global__ void update_umomentsKernel(float* uFlux, struct solver_metadata* meta
 }
 
 // Update the collided flux moment across differnt angles, each computed by a different "block" of threads.
-__global__ void updateFluxMoment(float* nextMoment, float* nextFlux_block, struct solver_metadata* metadata, int numMoments)
+__global__ void updateFluxMoment(SOL_T* nextMoment, SOL_T* nextFlux_block, struct solver_metadata* metadata, int numMoments)
 {
     int ir = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -730,11 +753,11 @@ __global__ void updateFluxMoment(float* nextMoment, float* nextFlux_block, struc
     {
         for (int iang = 0; iang < metadata->num_angles; iang++)
         {
-            float costheta = metadata->eta[iang];  
-            float phi = atan2(metadata->mu[iang], metadata->zi[iang]);
+            SOL_T costheta = metadata->eta[iang];  
+            SOL_T phi = atan2(metadata->mu[iang], metadata->zi[iang]);
             for (unsigned int il = 0; il <= metadata->pn; il++)
             {
-                nextMoment[ir * numMoments + il*il] += nextFlux_block[iang * metadata->num_voxels + ir] * computAssocLegendre(il, 0, costheta);
+                nextMoment[ir * numMoments + il * il] += nextFlux_block[iang * metadata->num_voxels + ir] * computAssocLegendre(il, 0, costheta);
                 for (unsigned int im = 1; im <= il; im++)
                 {
                     nextMoment[ir * numMoments + il * il + 2 * im - 1] += nextFlux_block[iang * metadata->num_voxels + ir] *
@@ -747,10 +770,11 @@ __global__ void updateFluxMoment(float* nextMoment, float* nextFlux_block, struc
         }
 
     }
+    
 }
 
 // Copies updated collided flux moment from a local buffer (energy-independent) to a global buffer (energy-dependent)
-__global__ void updatecMomentAtEnergy(float* cMoment, float* nextMoment, struct solver_metadata* metadata, int ie, int numMoments)
+__global__ void updatecMomentAtEnergy(SOL_T* cMoment, SOL_T* nextMoment, struct solver_metadata* metadata, int ie, int numMoments)
 {
     unsigned int xIndx = blockIdx.x;
     unsigned int yIndx = blockIdx.y;
@@ -766,8 +790,8 @@ __global__ void updatecMomentAtEnergy(float* cMoment, float* nextMoment, struct 
 }
 
 // Single LBTE iteration at given energy using Spherical Harmonic method
-__global__ void LBTE_Iteration_Harmonic(float* nextFlux_block, float* totalCrossSection, float* cmoments, float* inmoments,
-                                        float* outboundFluxX, float* outboundFluxY, float* outboundFluxZ, int numMoments,
+__global__ void LBTE_Iteration_Harmonic(SOL_T* nextFlux_block, SOL_T* totalCrossSection, SOL_T* cmoments, SOL_T* inmoments,
+                                        SOL_T* outboundFluxX, SOL_T* outboundFluxY, SOL_T* outboundFluxZ, int numMoments,
                                         struct sweep_pattern** sweep_list, struct solver_metadata* metadata, int ie)
 {
     // each block solves LBTE for a specific scatter-angle in the quadrature
@@ -777,9 +801,9 @@ __global__ void LBTE_Iteration_Harmonic(float* nextFlux_block, float* totalCross
     int tid = threadIdx.x;
 
     // Get parameters for specific angle within quadrature
-    float Ayz = 2 * fabsf(metadata->mu[iang]) * metadata->voxel_area_yz;
-    float Axz = 2 * fabsf(metadata->zi[iang]) * metadata->voxel_area_xz;
-    float Axy = 2 * fabsf(metadata->eta[iang]) * metadata->voxel_area_xy;
+    SOL_T Ayz = 2 * fabs(metadata->mu[iang]) * metadata->voxel_area_yz;
+    SOL_T Axz = 2 * fabs(metadata->zi[iang]) * metadata->voxel_area_xz;
+    SOL_T Axy = 2 * fabs(metadata->eta[iang]) * metadata->voxel_area_xy;
 
     // Find the angle (theta, phi)
     SOL_T theta = acos(metadata->eta[iang]);  // Choose Y axis as the polar axis
@@ -795,9 +819,9 @@ __global__ void LBTE_Iteration_Harmonic(float* nextFlux_block, float* totalCross
     int xjmp = metadata->Ny * metadata->Nz;
     int yjmp = metadata->Nz;
 
-    float influxX, influxY, influxZ;
-    float outx, outy, outz;
-    float numer, denom, angFlux;
+    SOL_T influxX, influxY, influxZ;
+    SOL_T outx, outy, outz;
+    SOL_T numer, denom, angFlux;
 
     int voxel_ind_local, voxel_ind_global, vbegin, vend;
     int ir, ix, iy, iz, stage, cflag;
@@ -869,7 +893,9 @@ __global__ void LBTE_Iteration_Harmonic(float* nextFlux_block, float* totalCross
             }
 
             // Calcualte down-scattering source
-            float totalSource = 0.0;
+            SOL_T totalSource = 0.0;
+            SOL_T coeff = 0.0;
+           
             for (unsigned int il = 0; il <= metadata->pn; il++)
             {
                 int im = metadata->zoneIdMapped[ir];
@@ -877,34 +903,38 @@ __global__ void LBTE_Iteration_Harmonic(float* nextFlux_block, float* totalCross
                 int src_step = metadata->num_energies * (metadata->pn + 1);
                 int sink_step = metadata->pn + 1;
 
-                float coeff = metadata->sigma_s[im * im_step + ie * src_step + ie * sink_step + il] * metadata->atomDensity[ir] * metadata->voxel_vol;
+                coeff = metadata->sigma_s[im * im_step + ie * src_step + ie * sink_step + il] * metadata->atomDensity[ir] * metadata->voxel_vol;
                 
                 // downscatter from the uncollided and collided flux including group inscatter
                 totalSource += (2.0 * il + 1.0) * computAssocLegendre(il, 0, cos(theta)) * (coeff * cmoments[ie * metadata->num_voxels * numMoments + ir * numMoments + il * il]
                                                                                        + inmoments[ir * numMoments + il * il]);
 
                 
-                float n_const = 2.0 * (2.0 * il + 1.0); // Normalization constant
+                 SOL_T n_const = 1.0; //XL: Debug chnage 2.0 * (2.0 * il + 1.0); // Normalization constant
                 for (unsigned int imm = 1; imm <= il; imm++)
                 {
-                    totalSource += n_const * doubleFactorial(il-im) / doubleFactorial(il+im) * computAssocLegendre(il, imm, cos(theta)) * sin(imm * phi) *
+                    totalSource +=  n_const * doubleFactorial(il-im) / doubleFactorial(il+im) * computAssocLegendre(il, imm, cos(theta)) * sin(imm * phi) *
                                    (coeff * cmoments[ie * metadata->num_voxels * numMoments + ir * numMoments + il * il + 2 * imm -1]
                                    + inmoments[ir * numMoments + il * il + 2 * imm -1]);
-                    totalSource += n_const * doubleFactorial(il-im) / doubleFactorial(il+im) * computAssocLegendre(il, imm, cos(theta)) * cos(imm * phi) *
+                    totalSource +=  n_const * doubleFactorial(il-im) / doubleFactorial(il+im) * computAssocLegendre(il, imm, cos(theta)) * cos(imm * phi) *
                                    (coeff * cmoments[ie * metadata->num_voxels * numMoments + ir * numMoments + il * il + 2 * imm]
                                    + inmoments[ir * numMoments + il * il + 2 * imm]);
+
                 }
 
             }
 
             numer = totalSource + Ayz * influxX + Axz * influxY + Axy * influxZ;
 
-            denom = totalCrossSection[ir] + Ayz + Axz + Axy;
-
-            if (denom <= 1e-10f || isnan(denom)) denom = 1e-10f; 
+            //XL: Debug
+            denom = fmax(totalCrossSection[ir] + Ayz + Axz + Axy, 1e-30);
 
             // update voxel
             angFlux = numer / denom;
+            if(isnan(angFlux) || isinf(angFlux))
+            {
+                 printf("NaN detected at voxel %d angle %d\n", ir, iang);
+            }
 
             // value at voxel-boundaries (used as incoming flux for next stage of sweep)
             outx = 2 * angFlux - influxX;
@@ -948,7 +978,7 @@ __global__ void LBTE_Iteration_Harmonic(float* nextFlux_block, float* totalCross
 
 
 // Anisotropic Solver 
-float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<double>* uFlux_vector)
+SOL_T* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<SOL_T>* uFlux_vector)
 {
     // Do some input checks
     if (metadata.pn > 8)
@@ -967,29 +997,31 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
     std::cout << "MomentCount = " << momentCount << std::endl;
 
     // device pointers - allocate on device. NO copy from host-->device needed
-    float* outboundFluxX, * outboundFluxY, * outboundFluxZ; //size: #angles * #voxels. (Optional) re-set to 0 prior to every LBTE iteration
-    float* nextFlux_block; //size: #angles * #voxels . Should be re-set to 0 prior to every LBTE iteration
+    SOL_T* outboundFluxX, *outboundFluxY, *outboundFluxZ; //size: #angles * #voxels. (Optional) re-set to 0 prior to every LBTE iteration
+    SOL_T* nextFlux_block; //size: #angles * #voxels . Should be re-set to 0 prior to every LBTE iteration
 
-    float* nextFlux;     // size: #voxels. accumulated flux over all angles.
+    SOL_T* nextFlux;     // size: #voxels. accumulated flux over all angles.
                          // reset to 0 prior to every LBTE iteration.
-    float* nextMoment;   // size: #voxels * #moments. update moments over all angles.
+    SOL_T* nextMoment;   // size: #voxels * #moments. update moments over all angles.
                          // reset to 0 prior to every LBTE iteration.
-    float* totalCrossSection; // size:#voxels. Meeds to be compute once every energy-lvel.
+    SOL_T* totalCrossSection; // size:#voxels. Meeds to be compute once every energy-lvel.
 
-    float* uFlux_device; // size: #energies * #voxels. Just copy once from host-->device (before the LBTE solver starts).
-    float* cFlux_device; // size: #energies * #voxels. Just intialize once to 0 (before LBTE solver starts)
+    SOL_T* uFlux_device; // size: #energies * #voxels. Just copy once from host-->device (before the LBTE solver starts).
+    SOL_T* cFlux_device; // size: #energies * #voxels. Just intialize once to 0 (before LBTE solver starts)
                          // After every LBTE iteration update this based on nextFlux.
 
-    float* umoments_device; // size: #energies * #voxels * momentCount. Need to compute on device (before the LBTE solver starts).
-    float* cmoments_device; // size: #energies * #voxels * momentCount. Just intialize once to 0 (before LBTE solver starts)
-    float* inmoments_device; // size: #voxels * momentCount. Sum of moments over energy groups. Just intialize once to 0 (before LBTE solver starts)
+    SOL_T* umoments_device; // size: #energies * #voxels * momentCount. Need to compute on device (before the LBTE solver starts).
+    SOL_T* cmoments_device; // size: #energies * #voxels * momentCount. Just intialize once to 0 (before LBTE solver starts)
+    SOL_T* inmoments_device; // size: #voxels * momentCount. Sum of moments over energy groups. Just intialize once to 0 (before LBTE solver starts)
 
-    float* diff_device, * norm_diff_device;  // after every LBTE iteration copy this value from device-->host
+    SOL_T* diff_device, *norm_diff_device;  // after every LBTE iteration copy this value from device-->host
+    
 
     // host pointers
-    float* cFlux_host = new float[metadata.num_energies * metadata.num_voxels];
-    float* uFlux_host; // use getufluxArray to set this
-    float* cmoments_host = new float[metadata.num_energies * metadata.num_voxels * momentCount]; // collided flux moments
+    SOL_T* cFlux_host = new SOL_T[metadata.num_energies * metadata.num_voxels]{};
+    SOL_T* uFlux_host; // use getufluxArray to set this
+    SOL_T* cmoments_host = new SOL_T[metadata.num_energies * metadata.num_voxels * momentCount]{}; // collided flux moments
+   
 
     // Convergence parameters
     int maxIterations = 25;
@@ -997,8 +1029,8 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
 
     // variables for tracking convergenxe
     int i, it = 0;
-    float maxDiff = 0.0, totDiff = 0.0;
-    float *diff, *norm_diff;
+    SOL_T maxDiff = 0.0, totDiff = 0.0, totDiffPre = 0.0, totDiff2 = 0.0, rmsDiff = 0.0, avgDiff = 0.0;
+    SOL_T *diff, *norm_diff;
 
     // Precompute sweep patterns
     std::cout << "Precomputing 3-D voxel-sweep patterns for different directions ..." << std::endl;
@@ -1013,12 +1045,14 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
         printf("Using gpu_device %d\n", deviceNum);
 
     // Total memory requested on Device
-    float req_mem_device = 0.0;
+    SOL_T req_mem_device = 0.0;
 
     //----metadata transfer--
     std::cout << "Transferring metadata to device ..." << std::endl;
     metadata_device = transferMetadataToDevice(metadata);
-    req_mem_device += sizeof(struct solver_metadata*);
+    req_mem_device  = sizeof(float) * metadata.num_angles * 4 + sizeof(float) * (metadata.Nx + 1) * 3 + sizeof(float) * metadata.num_energies
+                    + sizeof(float) * metadata.num_voxels * 2 + sizeof(float) * metadata.num_materials * metadata.num_energies * metadata.num_energies * (metadata.pn + 1)
+                    + sizeof(float) * metadata.num_materials * metadata.num_energies + sizeof(struct solver_metadata);
 
     //---sweep pattern transfer ---
     std::cout << "Transferring sweep patterns to device ..." << std::endl;
@@ -1037,46 +1071,46 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
     //--allocate arrays on device--
     // initialization / transfer may need to be done repeatedly during the LBTE solver.
     std::cout << "Allocating vectors on device for the LBTE solver ..." << std::endl;
-    cudaMalloc((void**)&outboundFluxX, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-    cudaMalloc((void**)&outboundFluxY, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-    cudaMalloc((void**)&outboundFluxZ, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-    cudaMalloc((void**)&nextFlux_block, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-    req_mem_device += 4 * sizeof(float) * metadata.num_voxels * metadata.num_angles;
+    cudaMalloc((void**)&outboundFluxX, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+    cudaMalloc((void**)&outboundFluxY, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+    cudaMalloc((void**)&outboundFluxZ, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+    cudaMalloc((void**)&nextFlux_block, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+    req_mem_device += 4. * sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles;
 
-    cudaMalloc((void**)&nextFlux, sizeof(float) * metadata.num_voxels);
-    cudaMalloc((void**)&totalCrossSection, sizeof(float) * metadata.num_voxels);
-    req_mem_device += 2 * sizeof(float) * metadata.num_voxels;
+    cudaMalloc((void**)&nextFlux, sizeof(SOL_T) * metadata.num_voxels);
+    cudaMalloc((void**)&totalCrossSection, sizeof(SOL_T) * metadata.num_voxels);
+    req_mem_device += 2. * sizeof(SOL_T) * metadata.num_voxels;
 
-    cudaMalloc((void**)&uFlux_device, sizeof(float) * metadata.num_voxels * metadata.num_energies);
-    cudaMalloc((void**)&cFlux_device, sizeof(float) * metadata.num_voxels * metadata.num_energies);
-    req_mem_device += 2 * sizeof(float) * metadata.num_voxels * metadata.num_energies;
+    cudaMalloc((void**)&uFlux_device, sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies);
+    cudaMalloc((void**)&cFlux_device, sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies);
+    req_mem_device += 2. * sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies;
 
-    cudaMalloc((void**)&cmoments_device, sizeof(float)* metadata.num_energies* metadata.num_voxels* momentCount);  // collided moments on device
-    cudaMalloc((void**)&umoments_device, sizeof(float)* metadata.num_energies* metadata.num_voxels* momentCount);  // uncollided moments on device
-    cudaMalloc((void**)&inmoments_device, sizeof(float)* metadata.num_voxels* momentCount);                        // sum of c/uc moments over energy
-    cudaMalloc((void**)&nextMoment, sizeof(float) * metadata.num_voxels * momentCount);                            // temp moments in LBTE inner iteration
-    req_mem_device += 2 * sizeof(float) * metadata.num_voxels * metadata.num_energies * momentCount;
-    req_mem_device += 2 * sizeof(float) * metadata.num_voxels * momentCount;
-
+    cudaMalloc((void**)&cmoments_device, sizeof(SOL_T)* metadata.num_energies* metadata.num_voxels* momentCount);  // collided moments on device
+    cudaMalloc((void**)&umoments_device, sizeof(SOL_T)* metadata.num_energies* metadata.num_voxels* momentCount);  // uncollided moments on device
+    cudaMalloc((void**)&inmoments_device, sizeof(SOL_T)* metadata.num_voxels* momentCount);                        // sum of c/uc moments over energy
+    cudaMalloc((void**)&nextMoment, sizeof(SOL_T) * metadata.num_voxels * momentCount);                            // temp moments in LBTE inner iteration
+    req_mem_device += 2. * sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies * momentCount;
+    req_mem_device += 2. * sizeof(SOL_T) * metadata.num_voxels * momentCount;
+    
     // set (u/c)fluxes on device before LBTE solver begins
-    uFlux_host = getufluxArray(uFlux_vector, metadata.num_energies, metadata.num_voxels);
-    cudaMemcpy(uFlux_device, uFlux_host, sizeof(float) * metadata.num_voxels * metadata.num_energies, cudaMemcpyHostToDevice);
-    cudaMemset(cFlux_device, 0, sizeof(float) * metadata.num_voxels * metadata.num_energies);
+    //uFlux_host = getufluxArray(uFlux_vector, metadata.num_energies, metadata.num_voxels);  // Convert double vector to float array
+    cudaMemcpy(uFlux_device, uFlux_vector->data(), sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies, cudaMemcpyHostToDevice);
+    cudaMemset(cFlux_device, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies);
 
     // set (u/c)moments on device before LBTE solver begins
-    cudaMemset(cmoments_device, 0, sizeof(float) * metadata.num_voxels * metadata.num_energies * momentCount);
-    cudaMemset(umoments_device, 0, sizeof(float) * metadata.num_voxels * metadata.num_energies * momentCount);
-    cudaMemset(inmoments_device, 0, sizeof(float) * metadata.num_voxels * momentCount);
+    cudaMemset(cmoments_device, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies * momentCount);
+    cudaMemset(umoments_device, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_energies * momentCount);
+    cudaMemset(inmoments_device, 0, sizeof(SOL_T) * metadata.num_voxels * momentCount);
 
-    // convgerence tracking
-    diff = new float[metadata.num_voxels]{};
-    norm_diff = new float[metadata.num_voxels]{};
-    cudaMalloc((void**)&diff_device, sizeof(float) * metadata.num_voxels);
-    cudaMalloc((void**)&norm_diff_device, sizeof(float) * metadata.num_voxels);
-    req_mem_device += 2 * sizeof(float) * metadata.num_voxels;
+    // convgerence tracking make it double
+    diff = new SOL_T[metadata.num_voxels];
+    norm_diff = new SOL_T[metadata.num_voxels];
+    cudaMalloc((void**)&diff_device, sizeof(SOL_T) * metadata.num_voxels);
+    cudaMalloc((void**)&norm_diff_device, sizeof(SOL_T) * metadata.num_voxels);
+    req_mem_device += 2 * sizeof(SOL_T) * metadata.num_voxels;
 
     // Check total requested memory on Device
-    std::cout << "Total requested memory on GPU is: " << req_mem_device / 1024 / 1024 / 1024 << " GB\n" << std::endl;
+    std::cout << "Total requested memory on GPU is: " << req_mem_device / 1024. / 1024. / 1024. << " GB\n" << std::endl;
 
     // Grid and Block dimensions
     // for precomputing source-term, downscatter and in-scatter
@@ -1124,36 +1158,42 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
     }
 
     // LBTE solver
+    //for (ie = highestEnergy; ie < 1; ie++)  //XL: debug
     for (ie = highestEnergy; ie < metadata.num_energies; ie++)
     {
         std::cout << "### Energy group " << ie << " ###" << std::endl;
         // LBTE iteration count for given energy
         it = 0;
         maxDiff = 1.0; // just set so that it enters the loop
+        rmsDiff = 1.0;
+        totDiff = 1.0e10;
+        totDiffPre = 1.0e11;
 
         // Precompute total scatter cross-section
         compute_totalCrossSection <<< grid_precomp, block_precomp >>> (totalCrossSection, metadata_device, ie);
 
         // Initialize the inmoments to zero for every energy group
-        cudaMemset(inmoments_device, 0, sizeof(float) * metadata.num_voxels * momentCount);
+        cudaMemset(inmoments_device, 0, sizeof(SOL_T) * metadata.num_voxels * momentCount);
 
         // Update uncollided flux moment for energy group ie and generate in-moments
         update_umomentsKernel <<< grid_umoment, block_umoment >>> (uFlux_device, metadata_device, umoments_device, cmoments_device,
-                                                                  inmoments_device, momentCount, highestEnergy, ie);
+                                                                  inmoments_device, momentCount, highestEnergy, ie);                                                                 
+        cudaDeviceSynchronize();
 
         // Single LBTE iteration
         while ((it < maxIterations) && (maxDiff > epsilon))
+       //while ((it < maxIterations) && (maxDiff > epsilon) && (totDiff/totDiffPre < 1.0))  //XL: Debug use rms for convergence
         {
             // Prior to every LBTE iteration (before sweep of angular-direction and voxel-grid) do the following re-initialization.
             // initialization required every iteration
-            cudaMemset(nextFlux_block, 0, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-            cudaMemset(nextFlux, 0, sizeof(float) * metadata.num_voxels);
-            cudaMemset(nextMoment, 0, sizeof(float) * metadata.num_voxels * momentCount);
+            cudaMemset(nextFlux_block, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+            cudaMemset(nextFlux, 0, sizeof(SOL_T) * metadata.num_voxels);
+            cudaMemset(nextMoment, 0, sizeof(SOL_T) * metadata.num_voxels * momentCount);
 
             // this initialization should be done once before LBTE solver. re-initialization before every LBTE iteration is optional.
-            cudaMemset(outboundFluxX, 0, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-            cudaMemset(outboundFluxY, 0, sizeof(float) * metadata.num_voxels * metadata.num_angles);
-            cudaMemset(outboundFluxZ, 0, sizeof(float) * metadata.num_voxels * metadata.num_angles);
+            cudaMemset(outboundFluxX, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+            cudaMemset(outboundFluxY, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
+            cudaMemset(outboundFluxZ, 0, sizeof(SOL_T) * metadata.num_voxels * metadata.num_angles);
 
             // Pre-compute in-scatter from collided-flux
             //compute_inscatter_Iso << < grid_precomp, block_precomp >> > (inscatter, cFlux_device, metadata_device, ie);
@@ -1162,7 +1202,7 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
             LBTE_Iteration_Harmonic <<< grid_LBTE, block_LBTE >>> (nextFlux_block, totalCrossSection, cmoments_device, inmoments_device,
                                                                    outboundFluxX, outboundFluxY, outboundFluxZ, momentCount,
                                                                    sweep_list_device, metadata_device, ie);
-
+            cudaDeviceSynchronize();
             // At end of LBTE iteration  do ..
             // 1) nextFlux <-- sum nextFlux_block over all angles
             // 2) nextMoment  <-- Update collided flux moment using angular flux over all angles
@@ -1176,20 +1216,27 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
             updatecMomentAtEnergy <<< grid_cmoment, block_cmoment >>> (cmoments_device, nextMoment, metadata_device, ie, momentCount);
 
             // Track convergence here
-            cudaMemcpy(diff, diff_device, sizeof(float) * metadata.num_voxels, cudaMemcpyDeviceToHost);
-            cudaMemcpy(norm_diff, norm_diff_device, sizeof(float) * metadata.num_voxels, cudaMemcpyDeviceToHost);
-            totDiff = 0;
-            maxDiff = 0;
+            cudaMemcpy(diff, diff_device, sizeof(SOL_T) * metadata.num_voxels, cudaMemcpyDeviceToHost);
+            cudaMemcpy(norm_diff, norm_diff_device, sizeof(SOL_T) * metadata.num_voxels, cudaMemcpyDeviceToHost);
+            
+            totDiffPre = totDiff;
+            totDiff = 0.0;
+            maxDiff = -1.0e35f;
+            totDiff2 = 0.0;
             for (i = 0; i < metadata.num_voxels; i++)
             {
                 maxDiff = std::max(maxDiff, norm_diff[i]);
-                totDiff += diff[i];
+                totDiff += norm_diff[i];
+                totDiff2 += norm_diff[i] * norm_diff[i]; // Sum of squares
             }
-
+            avgDiff = totDiff / metadata.num_voxels;
+            rmsDiff = sqrt(totDiff2 / metadata.num_voxels);
+            
             // increment iteration count
             it++;
 
-            std::cout<<"Iteration "<<it<<": Relative error = "<<maxDiff<<std::endl;
+            std::cout<<"Iteration "<< it << ": Max relative error = " << maxDiff << " avgDiff = " << avgDiff << std::endl;
+    
         } // END: while-loop corresponding to LBTE iterations at given energy-group
 
         if (!(it < maxIterations))
@@ -1205,8 +1252,8 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
     } //END: for(ie=0; ...)
 
     // Copy LBTE solution across all energy levels
-    cudaMemcpy(cFlux_host, cFlux_device, sizeof(float) * metadata.num_energies * metadata.num_voxels, cudaMemcpyDeviceToHost);
-    //cudaMemcpy(cmoments_host, cmoments_device, sizeof(float) * metadata.num_energies * metadata.num_voxels * momentCount, cudaMemcpyDeviceToHost);
+    cudaMemcpy(cFlux_host, cFlux_device, sizeof(SOL_T) * metadata.num_energies * metadata.num_voxels, cudaMemcpyDeviceToHost);
+    //cudaMemcpy(cmoments_host, cmoments_device, sizeof(SOL_T) * metadata.num_energies * metadata.num_voxels * momentCount, cudaMemcpyDeviceToHost);
 
     // De-allocate memory
     cudaFree(outboundFluxX);
@@ -1233,7 +1280,7 @@ float* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<do
     //return cmoments_host;
 }
 
-__global__ void raytraceKernel(struct solver_metadata* metadata, float* uflux)
+__global__ void raytraceKernel(struct solver_metadata* metadata, RAY_T* uflux)
 {
     unsigned int xIndxStart = blockIdx.x;
     unsigned int yIndxStart = blockIdx.y;
@@ -1409,17 +1456,17 @@ __global__ void raytraceKernel(struct solver_metadata* metadata, float* uflux)
     delete[] meanFreePaths;
 }
 
-float* raytraceIsoGPU(struct solver_metadata metadata)
+RAY_T* raytraceIsoGPU(struct solver_metadata metadata)
 {
     struct solver_metadata* metadata_device;
 
     int deviceNum = 0; // gpu-id
 
     // device pointers - allocate on device. NO copy from host-->device needed
-    float* uFlux_device; // size: #energies * #voxels. Just copy once from host-->device (before the LBTE solver starts).
+    RAY_T* uFlux_device; // size: #energies * #voxels. Just copy once from host-->device (before the LBTE solver starts).
 
     // host pointers
-    float* uFlux_host = new float[metadata.num_energies * metadata.num_voxels];
+    RAY_T* uFlux_host = new RAY_T[metadata.num_energies * metadata.num_voxels];
 
     if (cudaSetDevice(deviceNum) != cudaSuccess) {
         fprintf(stderr, "Error initializing device %d\n", deviceNum);
@@ -1434,8 +1481,8 @@ float* raytraceIsoGPU(struct solver_metadata metadata)
 
     //--allocate arrays on device--
     std::cout << "Allocating vectors on device for the Ray Tracing ..." << std::endl;
-    cudaMalloc((void**)&uFlux_device, sizeof(float) * metadata.num_voxels * metadata.num_energies);
-    cudaMemset(uFlux_device, 0, sizeof(float) * metadata.num_voxels * metadata.num_energies);
+    cudaMalloc((void**)&uFlux_device, sizeof(RAY_T) * metadata.num_voxels * metadata.num_energies);
+    cudaMemset(uFlux_device, 0, sizeof(RAY_T) * metadata.num_voxels * metadata.num_energies);
 
     // Grid and Block dimensions
     dim3 block_raytrace(1); // Current assume a fixed isotropic source
@@ -1447,7 +1494,7 @@ float* raytraceIsoGPU(struct solver_metadata metadata)
     raytraceKernel <<<grid_raytrace, block_raytrace >>>(metadata_device, uFlux_device);
     
     // Copy raytrace solution across all energy levels
-    cudaMemcpy(uFlux_host, uFlux_device, sizeof(float) * metadata.num_energies * metadata.num_voxels, cudaMemcpyDeviceToHost);
+    cudaMemcpy(uFlux_host, uFlux_device, sizeof(RAY_T) * metadata.num_energies * metadata.num_voxels, cudaMemcpyDeviceToHost);
 
     // De-allocate memory
     cudaFree(uFlux_device);

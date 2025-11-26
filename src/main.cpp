@@ -4,6 +4,7 @@
 #include <ctime>
 #include <limits>
 
+#include "macros.h"
 #include "dtfrparser.h"
 #include "ctdatamanager.h"
 #include "mesh.h"
@@ -368,9 +369,13 @@ int main(int argc, char* argv[])
          std::cout << "Iso position Z: " << p_source->isoZ << std::endl;
          
          // Note the spectra start at highest energy
-         for(unsigned int i = 0; i < p_source->spectraIntensity.size(); i++)
-            std::cout << "Energy bin #" << i << " = "
-            << p_source->spectraIntensity[i] << std::endl;
+         for(unsigned int i = 0; i < p_source->spectraIntensity.size(); i++) 
+         {
+            //p_source->spectraIntensity[i] = p_source->spectraIntensity[i] * 1e3;  // Scale to 1e3 source particles 
+            std::cout << "Energy bin #" << i << " = " << p_source->spectraIntensity[i] << std::endl;
+
+         }
+            
     }
 
     p_meshIn = p_ctman->parse16(xbins, ybins, zbins, xlen, ylen, zlen, ctdata_filename);
@@ -493,9 +498,9 @@ int main(int argc, char* argv[])
             reportGpuData(); 
           // Run LBTE solver on GPU 
             struct solver_metadata metadata;
-            float* cFlux;
-            float* cMoments;
-            float* uFlux;
+            SOL_T* cFlux;  //XL :make it double
+            SOL_T* cMoments;
+            RAY_T* uFlux; 
             // extract metadata for LBTE solver on GPU
             solver_metadata_extract(&metadata, p_quad, p_meshOut, p_xs, p_source, p_solver->pn);
             std::cout << "==Metadata extracted for LBTE solver==" << std::endl;
@@ -520,7 +525,7 @@ int main(int argc, char* argv[])
                 // run LBTE solver on GPU - Isotropic version
                 std::cout << "==LBTE ISO solver on GPU==" << std::endl;
                 std::clock_t startTime = std::clock();
-                cFlux = gsSolverIsoGPU(metadata, uflux);
+                //cFlux = gsSolverIsoGPU(metadata, uflux);
                 std::cout << "Time to complete Isotropic solver on GPU: "
                     << (std::clock() - startTime) / (double)(CLOCKS_PER_SEC / 1000.0)
                     << " ms" << std::endl;

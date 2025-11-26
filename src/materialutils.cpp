@@ -574,7 +574,7 @@ const std::vector<int> MaterialUtils::waterElements{
 const std::vector<std::vector<float> > MaterialUtils::waterWeights{
     std::vector<float> {0.000f, 0.000f, 0.755f, 0.232f, 0.013f, 0.000f, 0.000f}, // Air
     std::vector<float> {0.112f, 0.000f, 0.000f, 0.888f, 0.000f, 0.000f, 0.000f}, // Pure Water to replace breast model
-    std::vector<float> {0.000f, 0.000f, 0.000f, 0.000f, 0.000f, 0.488f, 0.512f}, // CsI detector changed from Container 08/30/2018
+    std::vector<float> {0.000f, 0.000f, 0.000f, 0.000f, 0.000f, 0.000f, 0.000f}, // CsI detector changed from Container 08/30/2018
     std::vector<float> {1.000f, 0.000f, 0.000f, 0.000f, 0.000f, 0.000f, 0.000f}  // Empty 20
 };
 

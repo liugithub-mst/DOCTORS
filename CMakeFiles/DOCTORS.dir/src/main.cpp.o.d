@@ -152,8 +152,9 @@ CMakeFiles/DOCTORS.dir/src/main.cpp.o: \
  /usr/include/c++/13/bits/basic_ios.tcc \
  /usr/include/c++/13/bits/ostream.tcc /usr/include/c++/13/istream \
  /usr/include/c++/13/bits/istream.tcc /usr/include/c++/13/ctime \
- /usr/include/c++/13/limits /home/liux/Work/DOCTORS/include/dtfrparser.h \
- /usr/include/c++/13/vector /usr/include/c++/13/bits/stl_uninitialized.h \
+ /usr/include/c++/13/limits /home/liux/Work/DOCTORS/include/macros.h \
+ /home/liux/Work/DOCTORS/include/dtfrparser.h /usr/include/c++/13/vector \
+ /usr/include/c++/13/bits/stl_uninitialized.h \
  /usr/include/c++/13/bits/stl_vector.h \
  /usr/include/c++/13/bits/stl_bvector.h \
  /usr/include/c++/13/bits/vector.tcc \
@@ -193,4 +194,5 @@ CMakeFiles/DOCTORS.dir/src/main.cpp.o: \
  /home/liux/Work/DOCTORS/include/solver_metadata.h \
  /home/liux/Work/DOCTORS/include/solver_metadata_extract.h \
  /home/liux/Work/DOCTORS/include/solver_gpu.cuh \
+ /home/liux/Work/DOCTORS/include/macros.h \
  /home/liux/Work/DOCTORS/include/device_utils.cuh
