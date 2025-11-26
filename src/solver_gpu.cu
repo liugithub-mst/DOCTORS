@@ -166,7 +166,7 @@ float *getufluxArray(const std::vector<double>* uflux_vector, int num_energies, 
   return uflux_array;
 }
 
-__global__ void compute_totalSource_Iso(float *totalSource, float *uFlux, float *cFlux, struct solver_metadata *metadata, int ie)
+__global__ void compute_totalSource_Iso(SOL_T *totalSource, SOL_T *uFlux, SOL_T *cFlux, struct solver_metadata *metadata, int ie)
 {
   int ir = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -195,7 +195,7 @@ __global__ void compute_totalSource_Iso(float *totalSource, float *uFlux, float 
 }
 
 //compute scatter within same energy group.
-__global__ void compute_inscatter_Iso(float *inscatter, float *cFlux, struct solver_metadata *metadata, int ie)
+__global__ void compute_inscatter_Iso(SOL_T *inscatter, SOL_T *cFlux, struct solver_metadata *metadata, int ie)
 {
   int ir = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -297,8 +297,8 @@ __global__ void updatecFluxAtEnergy(SOL_T *cFlux, SOL_T *nextFlux, struct solver
 
 
 // single lBTE iteration at given energy
-__global__ void LBTE_Iteration_Iso(float *nextFlux_block, float *totalSource, float *inscatter, float *totalCrossSection,
-                                   float *outboundFluxX, float *outboundFluxY, float *outboundFluxZ,
+__global__ void LBTE_Iteration_Iso(SOL_T *nextFlux_block, SOL_T *totalSource, SOL_T *inscatter, SOL_T *totalCrossSection,
+                                   SOL_T *outboundFluxX, SOL_T *outboundFluxY, SOL_T *outboundFluxZ,
                                    struct sweep_pattern **sweep_list, struct solver_metadata *metadata, int ie)
 {
   // each block solves LBTE for a specific scatter-angle in the quadrature
@@ -322,9 +322,9 @@ __global__ void LBTE_Iteration_Iso(float *nextFlux_block, float *totalSource, fl
   int xjmp = metadata->Ny * metadata->Nz;
   int yjmp = metadata->Nz;
 
-  float influxX, influxY, influxZ;
-  float outx, outy, outz;
-  float numer, denom, angFlux;
+  SOL_T influxX, influxY, influxZ;
+  SOL_T outx, outy, outz;
+  SOL_T numer, denom, angFlux;
 
   int voxel_ind_local, voxel_ind_global, vbegin, vend;
   int ir, ix, iy, iz, stage, cflag;
@@ -439,41 +439,41 @@ __global__ void LBTE_Iteration_Iso(float *nextFlux_block, float *totalSource, fl
   }
 
 }
-/* XL: comment out 
-float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>* uFlux_vector)
+
+SOL_T *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>* uFlux_vector)
 {
   struct solver_metadata *metadata_device;
   struct sweep_pattern sweep_temp, *sweep_device[8], **sweep_list_device;
   int ie, deviceNum=0; // gpu-id
 
   // device pointers - allocate on device. NO copy from host-->device needed
-  float *outboundFluxX, *outboundFluxY, *outboundFluxZ; //size: #angles * #voxels. (Optional) re-set to 0 prior to every LBTE iteration
-  float *nextFlux_block; //size: #angles * #voxels . Should be re-set to 0 prior to every LBTE iteration
+  SOL_T *outboundFluxX, *outboundFluxY, *outboundFluxZ; //size: #angles * #voxels. (Optional) re-set to 0 prior to every LBTE iteration
+  SOL_T *nextFlux_block; //size: #angles * #voxels . Should be re-set to 0 prior to every LBTE iteration
 
-  float *inscatter;    // size: #voxels. This needs to be recomputed at every energy level.
-  float *totalSource;  // size: #voxels. compute on device. This needs to be recomputed (after initialization to 0) at every energy level.
-  float *nextFlux;     // size: #voxels. accumulated flux over all angles.
+  SOL_T *inscatter;    // size: #voxels. This needs to be recomputed at every energy level.
+  SOL_T *totalSource;  // size: #voxels. compute on device. This needs to be recomputed (after initialization to 0) at every energy level.
+  SOL_T *nextFlux;     // size: #voxels. accumulated flux over all angles.
                        // reset to 0 prior to every LBTE iteration.
-  float *totalCrossSection; // size:#voxels. Meeds to be compute once every energy-lvel.
+  SOL_T *totalCrossSection; // size:#voxels. Meeds to be compute once every energy-lvel.
 
 
-  float *uFlux_device; // size: #energies * #voxels. Just copy once from host-->device (before the LBTE solver starts).
-  float *cFlux_device; // size: #energies * #voxels. Just intialize once to 0 (before LBTE solver starts)
+  SOL_T *uFlux_device; // size: #energies * #voxels. Just copy once from host-->device (before the LBTE solver starts).
+  SOL_T *cFlux_device; // size: #energies * #voxels. Just intialize once to 0 (before LBTE solver starts)
                        // After every LBTE iteration update this based on nextFlux.
 
-  float *diff_device, *norm_diff_device;  // after every LBTE iteration copy this value from device-->host
+  SOL_T *diff_device, *norm_diff_device;  // after every LBTE iteration copy this value from device-->host
 
   // host pointers
-  float *cFlux_host = new float[metadata.num_energies * metadata.num_voxels];
-  float *uFlux_host; // use getufluxArray to set this
+  SOL_T *cFlux_host = new SOL_T[metadata.num_energies * metadata.num_voxels];
+  //SOL_T *uFlux_host; // use getufluxArray to set this
 
   // Convergence parameters
   int maxIterations = 25;
   float epsilon = 0.001;
   // variables for tracking convergenxe
   int i, it=0;
-  float maxDiff=0, totDiff=0;
-  float *diff, *norm_diff;
+  SOL_T maxDiff = 0.0, totDiff = 0.0;
+  SOL_T *diff, *norm_diff;
 
   // Precompute sweep patterns
   std::cout<<"Precomputing 3-D voxel-sweep patterns for different directions ..."<<std::endl;
@@ -507,29 +507,29 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
   //--allocate arrays on device--
   // initialization / transfer may need to be done repeatedly during the LBTE solver.
   std::cout<<"Allocating vectors on device for the LBTE solver ..."<<std::endl;
-  cudaMalloc((void **)&outboundFluxX, sizeof(float)*metadata.num_voxels*metadata.num_angles);
-  cudaMalloc((void **)&outboundFluxY, sizeof(float)*metadata.num_voxels*metadata.num_angles);
-  cudaMalloc((void **)&outboundFluxZ, sizeof(float)*metadata.num_voxels*metadata.num_angles);
-  cudaMalloc((void **)&nextFlux_block, sizeof(float)*metadata.num_voxels*metadata.num_angles);
+  cudaMalloc((void **)&outboundFluxX, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
+  cudaMalloc((void **)&outboundFluxY, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
+  cudaMalloc((void **)&outboundFluxZ, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
+  cudaMalloc((void **)&nextFlux_block, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
 
-  cudaMalloc((void **)&inscatter, sizeof(float)*metadata.num_voxels);
-  cudaMalloc((void **)&totalSource, sizeof(float)*metadata.num_voxels);
-  cudaMalloc((void **)&nextFlux, sizeof(float)*metadata.num_voxels);
-  cudaMalloc((void **)&totalCrossSection, sizeof(float)*metadata.num_voxels);
+  cudaMalloc((void **)&inscatter, sizeof(SOL_T)*metadata.num_voxels);
+  cudaMalloc((void **)&totalSource, sizeof(SOL_T)*metadata.num_voxels);
+  cudaMalloc((void **)&nextFlux, sizeof(SOL_T)*metadata.num_voxels);
+  cudaMalloc((void **)&totalCrossSection, sizeof(SOL_T)*metadata.num_voxels);
 
-  cudaMalloc((void **)&uFlux_device, sizeof(float)*metadata.num_voxels*metadata.num_energies);
-  cudaMalloc((void **)&cFlux_device, sizeof(float)*metadata.num_voxels*metadata.num_energies);
+  cudaMalloc((void **)&uFlux_device, sizeof(SOL_T)*metadata.num_voxels*metadata.num_energies);
+  cudaMalloc((void **)&cFlux_device, sizeof(SOL_T)*metadata.num_voxels*metadata.num_energies);
 
   // set (u/c)fluxes on device before LBTE solver begins
-  uFlux_host = getufluxArray(uFlux_vector, metadata.num_energies, metadata.num_voxels);
-  cudaMemcpy(uFlux_device, uFlux_host, sizeof(float)*metadata.num_voxels*metadata.num_energies, cudaMemcpyHostToDevice);
-  cudaMemset(cFlux_device, 0, sizeof(float)*metadata.num_voxels*metadata.num_energies);
+  //uFlux_host = getufluxArray(uFlux_vector, metadata.num_energies, metadata.num_voxels);
+  cudaMemcpy(uFlux_device, uFlux_vector->data(), sizeof(SOL_T)*metadata.num_voxels*metadata.num_energies, cudaMemcpyHostToDevice);
+  cudaMemset(cFlux_device, 0, sizeof(SOL_T)*metadata.num_voxels*metadata.num_energies);
 
   // convgerence tracking
-  diff = new float[metadata.num_voxels];
-  norm_diff = new float[metadata.num_voxels];
-  cudaMalloc((void **)&diff_device, sizeof(float)*metadata.num_voxels);
-  cudaMalloc((void **)&norm_diff_device, sizeof(float)*metadata.num_voxels);
+  diff = new SOL_T[metadata.num_voxels];
+  norm_diff = new SOL_T[metadata.num_voxels];
+  cudaMalloc((void **)&diff_device, sizeof(SOL_T)*metadata.num_voxels);
+  cudaMalloc((void **)&norm_diff_device, sizeof(SOL_T)*metadata.num_voxels);
 
   // Grid and Block dimensions
   // for precomputing source-term, downscatter and in-scatter
@@ -569,7 +569,7 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
     std::cout<<"### Energy group "<<ie<<" ###"<<std::endl;
     // LBTE iteration count for given energy
     it=0;
-    maxDiff=1; // just set so that it enters the loop
+    maxDiff=1.0; // just set so that it enters the loop
 
     // Precompute source-term from uncollided-flux and downscatter from collided flux
     compute_totalSource_Iso<<< grid_precomp, block_precomp  >>>(totalSource, uFlux_device, cFlux_device, metadata_device, ie);
@@ -581,13 +581,13 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
     {
       // Prior to every LBTE iteration (before sweep of angular-direction and voxel-grid) do the following re-initialization.
       // initialization required every iteration
-      cudaMemset(nextFlux_block, 0, sizeof(float)*metadata.num_voxels*metadata.num_angles);
-      cudaMemset(nextFlux, 0, sizeof(float)*metadata.num_voxels);
+      cudaMemset(nextFlux_block, 0, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
+      cudaMemset(nextFlux, 0, sizeof(SOL_T)*metadata.num_voxels);
 
       // this initialization should be done once before LBTE solver. re-initialization before every LBTE iteration is optional.
-      cudaMemset(outboundFluxX, 0, sizeof(float)*metadata.num_voxels*metadata.num_angles);
-      cudaMemset(outboundFluxY, 0, sizeof(float)*metadata.num_voxels*metadata.num_angles);
-      cudaMemset(outboundFluxZ, 0, sizeof(float)*metadata.num_voxels*metadata.num_angles);
+      cudaMemset(outboundFluxX, 0, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
+      cudaMemset(outboundFluxY, 0, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
+      cudaMemset(outboundFluxZ, 0, sizeof(SOL_T)*metadata.num_voxels*metadata.num_angles);
 
       // Pre-compute in-scatter from collided-flux
       compute_inscatter_Iso<<< grid_precomp, block_precomp >>>(inscatter, cFlux_device, metadata_device, ie);
@@ -604,8 +604,8 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
       updatecFluxAtEnergy<<< grid_precomp, block_precomp >>>(cFlux_device, nextFlux, metadata_device, ie);
 
       // Track convergence here
-      cudaMemcpy(diff, diff_device, sizeof(float)*metadata.num_voxels, cudaMemcpyDeviceToHost);
-      cudaMemcpy(norm_diff, norm_diff_device, sizeof(float)*metadata.num_voxels, cudaMemcpyDeviceToHost);
+      cudaMemcpy(diff, diff_device, sizeof(SOL_T)*metadata.num_voxels, cudaMemcpyDeviceToHost);
+      cudaMemcpy(norm_diff, norm_diff_device, sizeof(SOL_T)*metadata.num_voxels, cudaMemcpyDeviceToHost);
       totDiff=0;
       maxDiff=0;
       for(i = 0; i < metadata.num_voxels; i++)
@@ -632,7 +632,7 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
   } //END: for(ie=0; ...)
 
   // Copy LBTE solution across all energy levels
-  cudaMemcpy(cFlux_host, cFlux_device, sizeof(float)*metadata.num_energies*metadata.num_voxels, cudaMemcpyDeviceToHost);
+  cudaMemcpy(cFlux_host, cFlux_device, sizeof(SOL_T)*metadata.num_energies*metadata.num_voxels, cudaMemcpyDeviceToHost);
 
   // De-allocate memory
   cudaFree(outboundFluxX);
@@ -647,12 +647,12 @@ float *gsSolverIsoGPU(struct solver_metadata metadata, const std::vector<double>
   cudaFree(totalSource);
   cudaFree(totalCrossSection);
 
-  free(uFlux_host);
+  //free(uFlux_host);
 
   return cFlux_host;
 
 }
-*/
+
 /*********** END: ROUTINES FOR ISOTROPIC LBTE SOLVER *******************/
 
 /*********** BEGIN: ROUTINES FOR ANISOTROPIC LBTE SOLVER ***************/
@@ -1019,7 +1019,7 @@ SOL_T* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<SO
 
     // host pointers
     SOL_T* cFlux_host = new SOL_T[metadata.num_energies * metadata.num_voxels]{};
-    SOL_T* uFlux_host; // use getufluxArray to set this
+    //SOL_T* uFlux_host; // use getufluxArray to set this
     SOL_T* cmoments_host = new SOL_T[metadata.num_energies * metadata.num_voxels * momentCount]{}; // collided flux moments
    
 
@@ -1274,7 +1274,7 @@ SOL_T* gsSolverHarmonicGPU(struct solver_metadata metadata, const std::vector<SO
     cudaFree(norm_diff_device);
     cudaFree(diff_device);
 
-    free(uFlux_host);
+    //free(uFlux_host);
 
     return cFlux_host;
     //return cmoments_host;

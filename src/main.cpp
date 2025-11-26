@@ -525,7 +525,7 @@ int main(int argc, char* argv[])
                 // run LBTE solver on GPU - Isotropic version
                 std::cout << "==LBTE ISO solver on GPU==" << std::endl;
                 std::clock_t startTime = std::clock();
-                //cFlux = gsSolverIsoGPU(metadata, uflux);
+                cFlux = gsSolverIsoGPU(metadata, uflux);
                 std::cout << "Time to complete Isotropic solver on GPU: "
                     << (std::clock() - startTime) / (double)(CLOCKS_PER_SEC / 1000.0)
                     << " ms" << std::endl;
